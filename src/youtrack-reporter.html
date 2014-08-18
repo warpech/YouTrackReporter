@@ -86,6 +86,7 @@
     url="{{config.restApiUrl}}rest/admin/user"
     headers="{{headers}}"
     handleAs="json"
+    withCredentials
     on-core-response="{{handleUsersResponse}}"></core-ajax>
 
   <core-ajax
@@ -93,6 +94,7 @@
     url="{{config.restApiUrl}}rest/admin/project"
     headers="{{headers}}"
     handleAs="json"
+    withCredentials
     on-core-response="{{handleProjectsResponse}}"></core-ajax>
 
   <core-ajax
@@ -100,6 +102,7 @@
     url="{{config.restApiUrl}}{{searchRequest}}"
     headers="{{headers}}"
     handleAs="json"
+    withCredentials
     on-core-response="{{handleSearchResponse}}"></core-ajax>
 
   <section class="config">
@@ -136,10 +139,6 @@
         <h2>Config</h2>
 
         <p>YouTrack URL: <br><input value="{{config.restApiUrl}}" on-blur="{{refresh}}"></p>
-
-        <p>User: <br><input value="{{config.restUser}}" on-blur="{{refresh}}"></p>
-
-        <p>Password: <br><input type="password" value="{{config.restPassword}}" on-blur="{{refresh}}"></p>
       </section>
     </section>
   </section>
@@ -210,9 +209,7 @@ function findFieldValue(fields, key) {
 
 Polymer('youtrack-reporter', {
   config: {
-    restApiUrl: "https://handsontable.myjetbrains.com/youtrack/",
-    restUser: "warpech",
-    restPassword: "5B2M56db1sn"
+    restApiUrl: "https://handsontable.myjetbrains.com/youtrack/"
   },
   ranges: [
     {
@@ -283,8 +280,9 @@ Polymer('youtrack-reporter', {
   refresh: function () {
     this.report.length = 0;
 
-    var auth = "Basic " + btoa(this.config.restUser + ":" + this.config.restPassword);
-    this.headers = {"Accept": "application/json", "Authorization": auth};
+    this.headers = {
+      "Accept": "application/json"
+    };
 
     this.searchRequest = "rest/issue?filter=";
     var that = this;
@@ -362,7 +360,7 @@ Polymer('youtrack-reporter', {
       var url = that.config.restApiUrl + 'rest/issue/' + result.id.toLowerCase() + '/timetracking/workitem/';
       var request = new XMLHttpRequest();
       request.open('GET', url, true);
-      request.setRequestHeader("Authorization", that.headers.Authorization);
+      request.withCredentials = true;
       request.setRequestHeader("Accept", that.headers.Accept);
       request.addEventListener("load", function (e) {
         var entries = JSON.parse(e.target.responseText);
