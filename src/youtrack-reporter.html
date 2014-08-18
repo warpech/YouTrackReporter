@@ -1,0 +1,406 @@
+<!-- Import Polymer -->
+<link rel="import" href="../bower_components/polymer/polymer.html">
+<link rel="import" href="../bower_components/core-ajax/core-ajax.html">
+<link rel="import" href="../bower_components/core-menu/core-menu.html">
+<link rel="import" href="../bower_components/paper-item/paper-item.html">
+
+<!-- Define your custom element -->
+<polymer-element name="youtrack-reporter">
+<template>
+  <style>
+    @media print {
+      .config {
+        display: none;
+      }
+
+      table {
+        font-size: 14px;
+      }
+    }
+
+    .config {
+      font-size: 80%;
+    }
+
+    .config .config {
+      font-size: 10px;
+      color: #444;
+    }
+
+    .config .config input {
+      font-size: 10px;
+      color: #444;
+    }
+
+    .core-selected {
+      font-weight: bold;
+    }
+
+    .filterOptions {
+      display: flex;
+      flex-direction: row;
+    }
+
+    .filterOptions section {
+      flex: 1;
+    }
+
+    .filterOptions core-menu {
+      margin: 0;
+    }
+
+    .filterOptions paper-item {
+      height: 24px;
+      padding: 0 4px;
+    }
+
+    table {
+      border: 1px solid black;
+      border-collapse: collapse;
+      width: 100%;
+    }
+
+    table th,
+    table td {
+      border-left: 1px solid black;
+      padding: 8px;
+    }
+
+    table th {
+      border-top: 1px solid black;
+      border-bottom: 1px solid black;
+    }
+
+    h1 {
+      font-size: 24px;
+      text-transform: uppercase;
+    }
+
+    .totalDuration {
+      font-size: 160%;
+    }
+  </style>
+
+  <core-ajax
+    auto
+    url="{{config.restApiUrl}}rest/admin/user"
+    headers="{{headers}}"
+    handleAs="json"
+    on-core-response="{{handleUsersResponse}}"></core-ajax>
+
+  <core-ajax
+    auto
+    url="{{config.restApiUrl}}rest/admin/project"
+    headers="{{headers}}"
+    handleAs="json"
+    on-core-response="{{handleProjectsResponse}}"></core-ajax>
+
+  <core-ajax
+    auto
+    url="{{config.restApiUrl}}{{searchRequest}}"
+    headers="{{headers}}"
+    handleAs="json"
+    on-core-response="{{handleSearchResponse}}"></core-ajax>
+
+  <section class="config">
+
+    <section class="filterOptions">
+      <section>
+        <h2>Users</h2>
+        <core-menu id="userSelection" multi on-core-select="{{refresh}}">
+          <template repeat="{{users}}">
+            <paper-item label="{{login}}"></paper-item>
+          </template>
+        </core-menu>
+      </section>
+
+      <section>
+        <h2>Projects</h2>
+        <core-menu id="projectSelection" multi on-core-select="{{refresh}}">
+          <template repeat="{{projects}}">
+            <paper-item label="{{id}}"></paper-item>
+          </template>
+        </core-menu>
+      </section>
+
+      <section>
+        <h2>Date range</h2>
+        <core-menu id="rangeSelection" selected="0" on-core-select="{{refresh}}">
+          <template repeat="{{ranges}}">
+            <paper-item label="{{name}}"></paper-item>
+          </template>
+        </core-menu>
+      </section>
+
+      <section class="config">
+        <h2>Config</h2>
+
+        <p>YouTrack URL: <br><input value="{{config.restApiUrl}}" on-blur="{{refresh}}"></p>
+
+        <p>User: <br><input value="{{config.restUser}}" on-blur="{{refresh}}"></p>
+
+        <p>Password: <br><input type="password" value="{{config.restPassword}}" on-blur="{{refresh}}"></p>
+      </section>
+    </section>
+  </section>
+
+  <h1>Report for {{reportRange}}</h1>
+
+  <template if="{{reportUsers.length}}">
+    <p>Users: {{reportUsers | joinByComma}}</p>
+  </template>
+  <template if="{{$.projectSelection.selection.length}}">
+    <p>Projects: {{$.projectSelection.selection | joinIdByComma}}</p>
+  </template>
+
+  <table>
+    <colgroup>
+      <col style="width: 10%"></col>
+      <col style="width: 10%"></col>
+      <col style="width: 35%"></col>
+      <col style="width: 35%"></col>
+      <col style="width: 10%"></col>
+    </colgroup>
+    <thead>
+    <tr>
+      <th>Date</th>
+      <th>Issue</th>
+      <th>Summary</th>
+      <th>Description</th>
+      <th>Duration</th>
+    </tr>
+    </thead>
+    <tbody>
+    <template repeat="{{report}}">
+      <tr>
+        <td>
+          {{parsedDate}}
+        </td>
+        <td style="white-space: nowrap">
+          {{issueId}}
+        </td>
+        <td>
+          {{summary}}
+        </td>
+        <td>
+          {{description}}
+        </td>
+        <td>
+          {{parsedDuration}} h
+        </td>
+      </tr>
+    </template>
+    </tbody>
+    <tfoot>
+    <tr>
+      <th colspan="5" style="text-align: right">Total: <span class="totalDuration">{{totalDuration}} h</span></th>
+    </tr>
+    </tfoot>
+  </table>
+</template>
+<script>
+function findFieldValue(fields, key) {
+  for (var i = 0, ilen = fields.length; i < ilen; i++) {
+    if (fields[i].name === key) {
+      return fields[i].value;
+    }
+  }
+}
+
+
+Polymer('youtrack-reporter', {
+  config: {
+    restApiUrl: "https://handsontable.myjetbrains.com/youtrack/",
+    restUser: "warpech",
+    restPassword: "5B2M56db1sn"
+  },
+  ranges: [
+    {
+      name: "Today"
+    },
+    {
+      name: "Yesterday"
+    },
+    {
+      name: "This week"
+    },
+    {
+      name: "This month"
+    },
+    {
+      name: "Last week"
+    },
+    {
+      name: "Last month"
+    }
+  ],
+  headers: {},
+  report: [],
+  reportUsers: [],
+  reportRange: "",
+  searchRequest: "",
+
+  // Fires when an instance of the element is created
+  created: function () {
+  },
+
+  // Fires when the element’s initial set of children and siblings are guaranteed to exist
+  domReady: function () {
+  },
+
+  // Fires when the "<polymer-element>" has been fully prepared
+  ready: function () {
+    this.refresh();
+  },
+
+  // Fires when the element was inserted into the document
+  attached: function () {
+  },
+
+  // Fires when the element was removed from the document
+  detached: function () {
+  },
+
+  // Fires when an attribute was added, removed, or updated
+  attributeChanged: function (attr, oldVal, newVal) {
+  },
+
+  joinByComma: function (arr) {
+    return arr.join(", ");
+  },
+
+  joinIdByComma: function (arr) {
+    var out = "";
+    arr.forEach(function (selectedItem, index) {
+      if (index > 0) {
+        out += ", ";
+      }
+      out += selectedItem.templateInstance.model.id;
+    });
+    return out;
+  },
+
+  refresh: function () {
+    this.report.length = 0;
+
+    var auth = "Basic " + btoa(this.config.restUser + ":" + this.config.restPassword);
+    this.headers = {"Accept": "application/json", "Authorization": auth};
+
+    this.searchRequest = "rest/issue?filter=";
+    var that = this;
+    this.reportUsers = [];
+    this.$.userSelection.selection.forEach(function (selectedItem) {
+      var login = selectedItem.templateInstance.model.login;
+      that.searchRequest += "%23" + login + " ";
+      that.reportUsers.push(login);
+    });
+    this.$.projectSelection.selection.forEach(function (selectedItem) {
+      var id = selectedItem.templateInstance.model.id;
+      that.searchRequest += "%23" + id + " ";
+    });
+
+    if (this.$.rangeSelection.selectedItem) {
+      this.reportRange = this.$.rangeSelection.selectedItem.templateInstance.model.name;
+      switch (this.$.rangeSelection.selectedItem.templateInstance.model.name) {
+        case "Today":
+          this.searchRequest += "updated: Today ";
+          break;
+
+        case "Yesterday":
+          this.searchRequest += "updated: Yesterday ";
+          break;
+
+        case "This week":
+          this.searchRequest += "updated: {This week} ";
+          break;
+
+        case "This month":
+          this.searchRequest += "updated: {This month} ";
+          break;
+
+        case "Last week":
+          this.searchRequest += "updated: {Last week} ";
+          break;
+
+        case "Last month":
+          this.searchRequest += "updated: {Last month} ";
+          break;
+      }
+    }
+    this.searchRequest += "&with=summary&with=Spent%20time&max=100";
+  },
+
+  userSelectAction: function () {
+
+  },
+
+  handleUsersResponse: function (ev) {
+    this.users = ev.detail.response;
+  },
+
+  handleProjectsResponse: function (ev) {
+    this.projects = ev.detail.response;
+  },
+
+  handleSearchResponse: function (ev) {
+    var results = ev.detail.response.issue;
+
+//      if(results.length) {
+//        for(var i = 0; i<1000; i++) {
+//          results.push(results[0]);
+//        }
+//      }
+
+
+    var report = [];
+
+    var waiting = results.length;
+
+    this.totalDuration = 0;
+    var that = this;
+    results.forEach(function (result) {
+      var url = that.config.restApiUrl + 'rest/issue/' + result.id.toLowerCase() + '/timetracking/workitem/';
+      var request = new XMLHttpRequest();
+      request.open('GET', url, true);
+      request.setRequestHeader("Authorization", that.headers.Authorization);
+      request.setRequestHeader("Accept", that.headers.Accept);
+      request.addEventListener("load", function (e) {
+        var entries = JSON.parse(e.target.responseText);
+        entries.forEach(function (entry) {
+          if (that.reportUsers.length > 0 && that.reportUsers.indexOf(entry.author.login) == -1) {
+            return;
+          }
+
+          var date = new Date(entry.date)
+          var d = date.getDay();
+          if (d < 10) {
+            d = "0" + d;
+          }
+          var m = date.getMonth() + 1;
+          if (m < 10) {
+            m = "0" + m;
+          }
+          var y = date.getFullYear();
+          entry.issueId = result.id;
+          entry.summary = findFieldValue(result.field, "summary");
+          entry.parsedDate = d + "." + m + "." + y;
+
+          var hours = entry.duration / 60;
+          that.totalDuration += hours;
+          entry.parsedDuration = Math.round(hours * 100) / 100;
+          report.push(entry);
+
+        });
+
+        waiting--;
+        if (!waiting) {
+          that.report = report;
+        }
+      })
+      request.send();
+    });
+  }
+});
+</script>
+
+</polymer-element>

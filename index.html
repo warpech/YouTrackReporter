@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>YouTrack Reporter</title>
+
+  <!-- Importing Web Component's Polyfill -->
+  <script src="bower_components/platform/platform.js"></script>
+
+  <!-- Importing Custom Elements -->
+  <link rel="import" href="src/youtrack-reporter.html">
+
+  <style>
+
+    body {
+      font-family: sans-serif;
+      margin: 20px;
+      font-size: 14px;
+    }
+
+    section {
+      width: 300px;
+    }
+
+    .core-selected {
+      font-weight: bold;
+    }
+
+  </style>
+</head>
+<body>
+
+<!-- Using Custom Elements -->
+<youtrack-reporter></youtrack-reporter>
+
+</body>
+</html>

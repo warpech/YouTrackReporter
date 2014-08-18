@@ -1,0 +1,22 @@
+{
+  "name": "youtrack-reporter",
+  "version": "0.0.0",
+  "description": "YouTrack Reporter by Nextgen",
+  "license": "MIT",
+  "main": "dist/my-element.html",
+  "keywords": [
+    "polymer",
+    "web-components"
+  ],
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components"
+  ],
+  "dependencies": {
+    "polymer": "Polymer/polymer#~0.3.3",
+    "core-ajax": "Polymer/core-ajax#~0.3.3",
+    "paper-item": "Polymer/paper-item#~0.3.3",
+    "core-menu": "Polymer/core-menu#~0.3.3"
+  }
+}
