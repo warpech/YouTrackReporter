@@ -299,7 +299,7 @@ Polymer('youtrack-reporter', {
     this.reportUsers = [];
     this.$.userSelection.selection.forEach(function (selectedItem) {
       var login = selectedItem.templateInstance.model.login;
-      that.searchRequest += "%23" + login + " ";
+      that.searchRequest += "%23" + login + " OR updater: " + login + " "; //updater: needed, otherwise does not respond with issues where someone added time tracking but did not comment
       that.reportUsers.push(login);
     });
     this.$.projectSelection.selection.forEach(function (selectedItem) {
