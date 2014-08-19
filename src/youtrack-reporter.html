@@ -124,29 +124,32 @@
   <section class="filterOptions">
     <section>
       <h2>Users</h2>
-      <core-menu id="userSelection" multi on-core-select="{{refresh}}">
+      <core-menu id="userSelection" multi selected="{{userSelection}}" on-core-select="{{refresh}}">
         <template repeat="{{users}}">
           <paper-item label="{{login}}"></paper-item>
         </template>
       </core-menu>
+      <core-localstorage name="youtrack-reporter-userSelection" value="{{userSelection}}"></core-localstorage>
     </section>
 
     <section>
       <h2>Projects</h2>
-      <core-menu id="projectSelection" multi on-core-select="{{refresh}}">
+      <core-menu id="projectSelection" multi selected="{{projectSelection}}" on-core-select="{{refresh}}">
         <template repeat="{{projects}}">
           <paper-item label="{{id}}"></paper-item>
         </template>
       </core-menu>
+      <core-localstorage name="youtrack-reporter-projectSelection" value="{{projectSelection}}"></core-localstorage>
     </section>
 
     <section>
       <h2>Date range</h2>
-      <core-menu id="rangeSelection" selected="0" on-core-select="{{refresh}}">
+      <core-menu id="rangeSelection" selected="{{rangeSelection}}" on-core-select="{{refresh}}">
         <template repeat="{{ranges}}">
           <paper-item label="{{name}}"></paper-item>
         </template>
       </core-menu>
+      <core-localstorage name="youtrack-reporter-rangeSelection" value="{{rangeSelection}}"></core-localstorage>
     </section>
 
     <section class="config">
@@ -231,6 +234,9 @@ function findFieldValue(fields, key) {
 
 Polymer('youtrack-reporter', {
   restApiUrl: "",
+  userSelection: null,
+  projectSelection: null,
+  rangeSelection: 0,
   ranges: [
     {
       name: "Today"
