@@ -217,7 +217,7 @@
   </tbody>
   <tfoot>
   <tr>
-    <th colspan="5" style="text-align: right">Total: <span class="totalDuration">{{totalDuration}} h</span></th>
+    <th colspan="5" style="text-align: right">Total: <span class="totalDuration">{{totalParsedDuration}} h</span></th>
   </tr>
   </tfoot>
 </table>
@@ -237,6 +237,8 @@ Polymer('youtrack-reporter', {
   userSelection: null,
   projectSelection: null,
   rangeSelection: 0,
+  rangeStart: null,
+  rangeEnd: null,
   ranges: [
     {
       name: "Today"
@@ -264,6 +266,9 @@ Polymer('youtrack-reporter', {
   reportUsers: [],
   reportRange: "",
   searchRequest: "",
+  lastXhrs: [],
+  totalDuration: 0,
+  totalParsedDuration: 0,
 
   // Fires when the "<polymer-element>" has been fully prepared
   ready: function () {
@@ -299,6 +304,8 @@ Polymer('youtrack-reporter', {
     }
 
     this.report.length = 0;
+    this.totalDuration = 0;
+    this.totalParsedDuration = 0;
 
     this.searchRequest = "rest/issue?filter=";
     var that = this;
@@ -317,29 +324,37 @@ Polymer('youtrack-reporter', {
       this.reportRange = this.$.rangeSelection.selectedItem.templateInstance.model.name;
       switch (this.$.rangeSelection.selectedItem.templateInstance.model.name) {
         case "Today":
-          this.searchRequest += "updated: Today ";
+          this.rangeStart = moment().startOf('day');
+          this.rangeEnd = moment().endOf('day');
           break;
 
         case "Yesterday":
-          this.searchRequest += "updated: Yesterday ";
+          this.rangeStart = moment().subtract(1, 'days').startOf('day');
+          this.rangeEnd = moment().subtract(1, 'days').endOf('day');
           break;
 
         case "This week":
-          this.searchRequest += "updated: {This week} ";
+          this.rangeStart = moment().startOf('week');
+          this.rangeEnd = moment().endOf('week');
           break;
 
         case "This month":
-          this.searchRequest += "updated: {This month} ";
+          this.rangeStart = moment().startOf('month');
+          this.rangeEnd = moment().endOf('month');
           break;
 
         case "Last week":
-          this.searchRequest += "updated: {Last week} ";
+          this.rangeStart = moment().subtract(1, 'weeks').startOf('week');
+          this.rangeEnd = moment().subtract(1, 'weeks').endOf('week');
           break;
 
         case "Last month":
-          this.searchRequest += "updated: {Last month} ";
+          this.rangeStart = moment().subtract(1, 'months').startOf('month');
+          this.rangeEnd = moment().subtract(1, 'months').endOf('month');
           break;
       }
+
+      this.searchRequest += "updated: " + this.rangeStart.format("YYYY-MM-DD HH:mm") + " .. " + this.rangeEnd.format("YYYY-MM-DD HH:mm") + " ";
     }
     this.searchRequest += "&with=summary&with=Spent%20time&max=100";
   },
@@ -363,6 +378,10 @@ Polymer('youtrack-reporter', {
 
     var report = [];
 
+    this.lastXhrs.forEach(function (xhr) {
+      xhr.abort();
+    });
+
     var waiting = results.length;
 
     this.totalDuration = 0;
@@ -373,6 +392,7 @@ Polymer('youtrack-reporter', {
       }
       var url = that.restApiUrl + 'rest/issue/' + result.id.toLowerCase() + '/timetracking/workitem/';
       var request = new XMLHttpRequest();
+      that.lastXhrs.push(request);
       request.open('GET', url, true);
       request.withCredentials = true;
       request.setRequestHeader("Accept", that.headers.Accept);
@@ -383,7 +403,13 @@ Polymer('youtrack-reporter', {
             return;
           }
 
-          var date = new Date(entry.date)
+          var date = new Date(entry.date);
+
+          if (date < that.rangeStart || date > that.rangeEnd) {
+            return;
+          }
+
+
           var d = date.getDay();
           if (d < 10) {
             d = "0" + d;
@@ -398,8 +424,9 @@ Polymer('youtrack-reporter', {
           entry.parsedDate = d + "." + m + "." + y;
 
           var hours = entry.duration / 60;
-          that.totalDuration += hours;
           entry.parsedDuration = Math.round(hours * 100) / 100;
+          that.totalDuration += hours;
+          that.totalParsedDuration = Math.round(that.totalDuration * 100) / 100;
           report.push(entry);
 
         });
