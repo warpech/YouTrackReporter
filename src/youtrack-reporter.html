@@ -3,87 +3,98 @@
 <link rel="import" href="../bower_components/core-ajax/core-ajax.html">
 <link rel="import" href="../bower_components/core-menu/core-menu.html">
 <link rel="import" href="../bower_components/paper-item/paper-item.html">
+<link rel="import" href="../bower_components/core-localstorage/core-localstorage.html">
 
 <!-- Define your custom element -->
 <polymer-element name="youtrack-reporter">
 <template>
-  <style>
-    @media print {
-      .config {
-        display: none;
-      }
-
-      table {
-        font-size: 14px;
-      }
-    }
-
+<style>
+  @media print {
     .config {
-      font-size: 80%;
-    }
-
-    .config .config {
-      font-size: 10px;
-      color: #444;
-    }
-
-    .config .config input {
-      font-size: 10px;
-      color: #444;
-    }
-
-    .core-selected {
-      font-weight: bold;
-    }
-
-    .filterOptions {
-      display: flex;
-      flex-direction: row;
-    }
-
-    .filterOptions section {
-      flex: 1;
-    }
-
-    .filterOptions core-menu {
-      margin: 0;
-    }
-
-    .filterOptions paper-item {
-      height: 24px;
-      padding: 0 4px;
+      display: none;
     }
 
     table {
-      border: 1px solid black;
-      border-collapse: collapse;
-      width: 100%;
+      font-size: 14px;
     }
+  }
 
-    table th,
-    table td {
-      border-left: 1px solid black;
-      padding: 8px;
-    }
+  .config {
+    font-size: 80%;
+  }
 
-    table th {
-      border-top: 1px solid black;
-      border-bottom: 1px solid black;
-    }
+  .config .config {
+    font-size: 10px;
+    color: #444;
+  }
 
-    h1 {
-      font-size: 24px;
-      text-transform: uppercase;
-    }
+  .config .config input {
+    font-size: 10px;
+    color: #444;
+  }
 
-    .totalDuration {
-      font-size: 160%;
-    }
-  </style>
+  .core-selected {
+    font-weight: bold;
+  }
 
+  .filterOptions {
+    display: flex;
+    flex-direction: row;
+  }
+
+  .filterOptions section {
+    flex: 1;
+  }
+
+  .filterOptions core-menu {
+    margin: 0;
+  }
+
+  .filterOptions paper-item {
+    height: 24px;
+    padding: 0 4px;
+  }
+
+  table {
+    border: 1px solid black;
+    border-collapse: collapse;
+    width: 100%;
+  }
+
+  table th,
+  table td {
+    border-left: 1px solid black;
+    padding: 8px;
+  }
+
+  table th {
+    border-top: 1px solid black;
+    border-bottom: 1px solid black;
+  }
+
+  h1 {
+    font-size: 24px;
+    text-transform: uppercase;
+  }
+
+  .totalDuration {
+    font-size: 160%;
+  }
+
+  #restApiUrl {
+    border: 1px solid #999;
+    width: 100%;
+  }
+
+  #restApiUrl.error {
+    border: 1px solid red;
+  }
+</style>
+
+<template if="{{restApiUrl}}">
   <core-ajax
     auto
-    url="{{config.restApiUrl}}rest/admin/user"
+    url="{{restApiUrl}}rest/admin/user"
     headers="{{headers}}"
     handleAs="json"
     withCredentials
@@ -91,111 +102,120 @@
 
   <core-ajax
     auto
-    url="{{config.restApiUrl}}rest/admin/project"
+    url="{{restApiUrl}}rest/admin/project"
     headers="{{headers}}"
     handleAs="json"
     withCredentials
     on-core-response="{{handleProjectsResponse}}"></core-ajax>
 
-  <core-ajax
-    auto
-    url="{{config.restApiUrl}}{{searchRequest}}"
-    headers="{{headers}}"
-    handleAs="json"
-    withCredentials
-    on-core-response="{{handleSearchResponse}}"></core-ajax>
+  <template if="{{searchRequest}}">
+    <core-ajax
+      auto
+      url="{{restApiUrl}}{{searchRequest}}"
+      headers="{{headers}}"
+      handleAs="json"
+      withCredentials
+      on-core-response="{{handleSearchResponse}}"></core-ajax>
+  </template>
+</template>
 
-  <section class="config">
+<section class="config">
 
-    <section class="filterOptions">
-      <section>
-        <h2>Users</h2>
-        <core-menu id="userSelection" multi on-core-select="{{refresh}}">
-          <template repeat="{{users}}">
-            <paper-item label="{{login}}"></paper-item>
-          </template>
-        </core-menu>
-      </section>
+  <section class="filterOptions">
+    <section>
+      <h2>Users</h2>
+      <core-menu id="userSelection" multi on-core-select="{{refresh}}">
+        <template repeat="{{users}}">
+          <paper-item label="{{login}}"></paper-item>
+        </template>
+      </core-menu>
+    </section>
 
-      <section>
-        <h2>Projects</h2>
-        <core-menu id="projectSelection" multi on-core-select="{{refresh}}">
-          <template repeat="{{projects}}">
-            <paper-item label="{{id}}"></paper-item>
-          </template>
-        </core-menu>
-      </section>
+    <section>
+      <h2>Projects</h2>
+      <core-menu id="projectSelection" multi on-core-select="{{refresh}}">
+        <template repeat="{{projects}}">
+          <paper-item label="{{id}}"></paper-item>
+        </template>
+      </core-menu>
+    </section>
 
-      <section>
-        <h2>Date range</h2>
-        <core-menu id="rangeSelection" selected="0" on-core-select="{{refresh}}">
-          <template repeat="{{ranges}}">
-            <paper-item label="{{name}}"></paper-item>
-          </template>
-        </core-menu>
-      </section>
+    <section>
+      <h2>Date range</h2>
+      <core-menu id="rangeSelection" selected="0" on-core-select="{{refresh}}">
+        <template repeat="{{ranges}}">
+          <paper-item label="{{name}}"></paper-item>
+        </template>
+      </core-menu>
+    </section>
 
-      <section class="config">
-        <h2>Config</h2>
+    <section class="config">
+      <h2>Config</h2>
 
-        <p>YouTrack URL: <br><input value="{{config.restApiUrl}}" on-blur="{{refresh}}"></p>
-      </section>
+      <p>YouTrack URL (e.q. https://EXAMPLE.myjetbrains.com/youtrack/): <br><input id="restApiUrl"
+                                                                                   value="{{restApiUrl}}"
+                                                                                   on-blur="{{refresh}}"></p>
+
+      <p>You need to be logged in to YouTrack.</p>
+
+      <core-localstorage name="youtrack-reporter-restApiUrl" value="{{restApiUrl}}"></core-localstorage>
     </section>
   </section>
+</section>
 
-  <h1>Report for {{reportRange}}</h1>
+<h1>Report for {{reportRange}}</h1>
 
-  <template if="{{reportUsers.length}}">
-    <p>Users: {{reportUsers | joinByComma}}</p>
-  </template>
-  <template if="{{$.projectSelection.selection.length}}">
-    <p>Projects: {{$.projectSelection.selection | joinIdByComma}}</p>
-  </template>
+<template if="{{reportUsers.length}}">
+  <p>Users: {{reportUsers | joinByComma}}</p>
+</template>
+<template if="{{$.projectSelection.selection.length}}">
+  <p>Projects: {{$.projectSelection.selection | joinIdByComma}}</p>
+</template>
 
-  <table>
-    <colgroup>
-      <col style="width: 10%"></col>
-      <col style="width: 10%"></col>
-      <col style="width: 35%"></col>
-      <col style="width: 35%"></col>
-      <col style="width: 10%"></col>
-    </colgroup>
-    <thead>
+<table>
+  <colgroup>
+    <col style="width: 10%"></col>
+    <col style="width: 10%"></col>
+    <col style="width: 35%"></col>
+    <col style="width: 35%"></col>
+    <col style="width: 10%"></col>
+  </colgroup>
+  <thead>
+  <tr>
+    <th>Date</th>
+    <th>Issue</th>
+    <th>Summary</th>
+    <th>Description</th>
+    <th>Duration</th>
+  </tr>
+  </thead>
+  <tbody>
+  <template repeat="{{report}}">
     <tr>
-      <th>Date</th>
-      <th>Issue</th>
-      <th>Summary</th>
-      <th>Description</th>
-      <th>Duration</th>
+      <td>
+        {{parsedDate}}
+      </td>
+      <td style="white-space: nowrap">
+        {{issueId}}
+      </td>
+      <td>
+        {{summary}}
+      </td>
+      <td>
+        {{description}}
+      </td>
+      <td>
+        {{parsedDuration}} h
+      </td>
     </tr>
-    </thead>
-    <tbody>
-    <template repeat="{{report}}">
-      <tr>
-        <td>
-          {{parsedDate}}
-        </td>
-        <td style="white-space: nowrap">
-          {{issueId}}
-        </td>
-        <td>
-          {{summary}}
-        </td>
-        <td>
-          {{description}}
-        </td>
-        <td>
-          {{parsedDuration}} h
-        </td>
-      </tr>
-    </template>
-    </tbody>
-    <tfoot>
-    <tr>
-      <th colspan="5" style="text-align: right">Total: <span class="totalDuration">{{totalDuration}} h</span></th>
-    </tr>
-    </tfoot>
-  </table>
+  </template>
+  </tbody>
+  <tfoot>
+  <tr>
+    <th colspan="5" style="text-align: right">Total: <span class="totalDuration">{{totalDuration}} h</span></th>
+  </tr>
+  </tfoot>
+</table>
 </template>
 <script>
 function findFieldValue(fields, key) {
@@ -208,9 +228,7 @@ function findFieldValue(fields, key) {
 
 
 Polymer('youtrack-reporter', {
-  config: {
-    restApiUrl: "https://handsontable.myjetbrains.com/youtrack/"
-  },
+  restApiUrl: "",
   ranges: [
     {
       name: "Today"
@@ -231,35 +249,17 @@ Polymer('youtrack-reporter', {
       name: "Last month"
     }
   ],
-  headers: {},
+  headers: {
+    "Accept": "application/json"
+  },
   report: [],
   reportUsers: [],
   reportRange: "",
   searchRequest: "",
 
-  // Fires when an instance of the element is created
-  created: function () {
-  },
-
-  // Fires when the element’s initial set of children and siblings are guaranteed to exist
-  domReady: function () {
-  },
-
   // Fires when the "<polymer-element>" has been fully prepared
   ready: function () {
     this.refresh();
-  },
-
-  // Fires when the element was inserted into the document
-  attached: function () {
-  },
-
-  // Fires when the element was removed from the document
-  detached: function () {
-  },
-
-  // Fires when an attribute was added, removed, or updated
-  attributeChanged: function (attr, oldVal, newVal) {
   },
 
   joinByComma: function (arr) {
@@ -278,11 +278,19 @@ Polymer('youtrack-reporter', {
   },
 
   refresh: function () {
-    this.report.length = 0;
+    if (!this.restApiUrl) {
+      this.$.restApiUrl.classList.add("error");
+      return;
+    }
+    else {
+      this.$.restApiUrl.classList.remove("error");
+    }
 
-    this.headers = {
-      "Accept": "application/json"
-    };
+    if (this.restApiUrl.length > 0 && this.restApiUrl.charAt(this.restApiUrl.length - 1) !== "/") {
+      this.restApiUrl = this.restApiUrl + "/";
+    }
+
+    this.report.length = 0;
 
     this.searchRequest = "rest/issue?filter=";
     var that = this;
@@ -328,27 +336,22 @@ Polymer('youtrack-reporter', {
     this.searchRequest += "&with=summary&with=Spent%20time&max=100";
   },
 
-  userSelectAction: function () {
-
-  },
-
   handleUsersResponse: function (ev) {
     this.users = ev.detail.response;
+    if (this.users && this.projects) {
+      this.refresh();
+    }
   },
 
   handleProjectsResponse: function (ev) {
     this.projects = ev.detail.response;
+    if (this.users && this.projects) {
+      this.refresh();
+    }
   },
 
   handleSearchResponse: function (ev) {
     var results = ev.detail.response.issue;
-
-//      if(results.length) {
-//        for(var i = 0; i<1000; i++) {
-//          results.push(results[0]);
-//        }
-//      }
-
 
     var report = [];
 
@@ -357,7 +360,10 @@ Polymer('youtrack-reporter', {
     this.totalDuration = 0;
     var that = this;
     results.forEach(function (result) {
-      var url = that.config.restApiUrl + 'rest/issue/' + result.id.toLowerCase() + '/timetracking/workitem/';
+      if (!that.restApiUrl) {
+        return;
+      }
+      var url = that.restApiUrl + 'rest/issue/' + result.id.toLowerCase() + '/timetracking/workitem/';
       var request = new XMLHttpRequest();
       request.open('GET', url, true);
       request.withCredentials = true;
