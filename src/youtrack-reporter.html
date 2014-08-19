@@ -107,16 +107,6 @@
     handleAs="json"
     withCredentials
     on-core-response="{{handleProjectsResponse}}"></core-ajax>
-
-  <template if="{{searchRequest}}">
-    <core-ajax
-      auto
-      url="{{restApiUrl}}{{searchRequest}}"
-      headers="{{headers}}"
-      handleAs="json"
-      withCredentials
-      on-core-response="{{handleSearchResponse}}"></core-ajax>
-  </template>
 </template>
 
 <section class="config">
@@ -312,7 +302,8 @@ Polymer('youtrack-reporter', {
     this.reportUsers = [];
     this.$.userSelection.selection.forEach(function (selectedItem) {
       var login = selectedItem.templateInstance.model.login;
-      that.searchRequest += "%23" + login + " OR updater: " + login + " "; //updater: needed, otherwise does not respond with issues where someone added time tracking but did not comment
+      //that.searchRequest += "%23" + login ;
+      //cannot find a query to limit search results to users that have updated time tracking. See: http://youtrack.jetbrains.com/issue/JT-17476
       that.reportUsers.push(login);
     });
     this.$.projectSelection.selection.forEach(function (selectedItem) {
@@ -354,9 +345,19 @@ Polymer('youtrack-reporter', {
           break;
       }
 
-      this.searchRequest += "updated: " + this.rangeStart.format("YYYY-MM-DD HH:mm") + " .. " + this.rangeEnd.format("YYYY-MM-DD HH:mm") + " ";
+//      this.searchRequest += "updated: " + this.rangeStart.format("YYYY-MM-DD HH:mm") + " .. " + this.rangeEnd.format("YYYY-MM-DD HH:mm") + " ";
     }
     this.searchRequest += "&with=summary&with=Spent%20time&max=100";
+
+    var that = this;
+    var request = new XMLHttpRequest();
+    request.open('GET', this.restApiUrl + this.searchRequest, true);
+    request.withCredentials = true;
+    request.setRequestHeader("Accept", that.headers.Accept);
+    request.addEventListener("load", function (ev) {
+      that.handleSearchResponse(ev);
+    });
+    request.send();
   },
 
   handleUsersResponse: function (ev) {
@@ -374,7 +375,7 @@ Polymer('youtrack-reporter', {
   },
 
   handleSearchResponse: function (ev) {
-    var results = ev.detail.response.issue;
+    var results = JSON.parse(ev.target.responseText).issue;
 
     var report = [];
 
@@ -439,7 +440,8 @@ Polymer('youtrack-reporter', {
       request.send();
     });
   }
-});
+})
+;
 </script>
 
 </polymer-element>
