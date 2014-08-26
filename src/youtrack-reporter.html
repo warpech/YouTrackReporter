@@ -3,6 +3,7 @@
 <link rel="import" href="../bower_components/core-ajax/core-ajax.html">
 <link rel="import" href="../bower_components/core-menu/core-menu.html">
 <link rel="import" href="../bower_components/paper-item/paper-item.html">
+<link rel="import" href="../bower_components/paper-progress/paper-progress.html">
 <link rel="import" href="../bower_components/core-localstorage/core-localstorage.html">
 
 <!-- Define your custom element -->
@@ -89,6 +90,17 @@
   #restApiUrl.error {
     border: 1px solid red;
   }
+
+  paper-progress#progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+  }
+
+  .hidden {
+    display: none;
+  }
 </style>
 
 <template if="{{restApiUrl}}">
@@ -109,12 +121,14 @@
     on-core-response="{{handleProjectsResponse}}"></core-ajax>
 </template>
 
+<paper-progress class="{{ {hidden: (issueProgress == maxProgress)} | tokenList }}" id="progress" value="{{issueProgress}}" max="{{maxProgress}}" title="Loaded {{issueProgress}}/{{maxProgress}}"></paper-progress>
+
 <section class="config">
 
   <section class="filterOptions">
     <section>
       <h2>Users</h2>
-      <core-menu id="userSelection" multi selected="{{userSelection}}" on-core-select="{{refresh}}">
+      <core-menu id="userSelection" multi selected="{{userSelection}}" on-core-activate="{{refresh}}">
         <template repeat="{{users}}">
           <paper-item label="{{login}}"></paper-item>
         </template>
@@ -124,7 +138,7 @@
 
     <section>
       <h2>Projects</h2>
-      <core-menu id="projectSelection" multi selected="{{projectSelection}}" on-core-select="{{refresh}}">
+      <core-menu id="projectSelection" multi selected="{{projectSelection}}" on-core-activate="{{refresh}}">
         <template repeat="{{projects}}">
           <paper-item label="{{id}}"></paper-item>
         </template>
@@ -223,6 +237,8 @@ function findFieldValue(fields, key) {
 
 
 Polymer('youtrack-reporter', {
+  issueProgress: 0,
+  maxProgress: 0,
   restApiUrl: "",
   userSelection: null,
   projectSelection: null,
@@ -281,6 +297,20 @@ Polymer('youtrack-reporter', {
   },
 
   refresh: function () {
+    this.maxProgress = 3;
+    this.issueProgress = 0;
+
+    if (this.users) {
+      this.issueProgress += 1;
+    }
+    if (this.projects) {
+      this.issueProgress += 1;
+    }
+
+    if (!(this.users && this.projects)) {
+      return;
+    }
+
     if (!this.restApiUrl) {
       this.$.restApiUrl.classList.add("error");
       return;
@@ -349,29 +379,31 @@ Polymer('youtrack-reporter', {
     }
     this.searchRequest += "&with=summary&with=Spent%20time&max=100";
 
+    this.lastXhrs.forEach(function (xhr) {
+      xhr.abort();
+    });
+
     var that = this;
     var request = new XMLHttpRequest();
     request.open('GET', this.restApiUrl + this.searchRequest, true);
     request.withCredentials = true;
     request.setRequestHeader("Accept", that.headers.Accept);
     request.addEventListener("load", function (ev) {
+      that.issueProgress += 1;
       that.handleSearchResponse(ev);
     });
     request.send();
+    this.lastXhrs.push(request);
   },
 
   handleUsersResponse: function (ev) {
     this.users = ev.detail.response;
-    if (this.users && this.projects) {
-      this.refresh();
-    }
+    this.refresh();
   },
 
   handleProjectsResponse: function (ev) {
     this.projects = ev.detail.response;
-    if (this.users && this.projects) {
-      this.refresh();
-    }
+    this.refresh();
   },
 
   handleSearchResponse: function (ev) {
@@ -379,11 +411,8 @@ Polymer('youtrack-reporter', {
 
     var report = [];
 
-    this.lastXhrs.forEach(function (xhr) {
-      xhr.abort();
-    });
-
     var waiting = results.length;
+    this.maxProgress += waiting;
 
     this.totalDuration = 0;
     var that = this;
@@ -432,6 +461,7 @@ Polymer('youtrack-reporter', {
 
         });
 
+        that.issueProgress++;
         waiting--;
         if (!waiting) {
           that.report = report;
