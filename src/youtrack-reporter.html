@@ -121,7 +121,9 @@
     on-core-response="{{handleProjectsResponse}}"></core-ajax>
 </template>
 
-<paper-progress class="{{ {hidden: (issueProgress == maxProgress)} | tokenList }}" id="progress" value="{{issueProgress}}" max="{{maxProgress}}" title="Loaded {{issueProgress}}/{{maxProgress}}"></paper-progress>
+<paper-progress class="{{ {hidden: (issueProgress == maxProgress)} | tokenList }}" id="progress"
+                value="{{issueProgress}}" max="{{maxProgress}}"
+                title="Loaded {{issueProgress}}/{{maxProgress}}"></paper-progress>
 
 <section class="config">
 
@@ -174,8 +176,11 @@
 
 <h1>Report for {{reportRange}}</h1>
 
-<template if="{{reportUsers.length}}">
+<template if="{{reportUsers.length > 1}}">
   <p>Users: {{reportUsers | joinByComma}}</p>
+</template>
+<template if="{{reportUsers.length == 1}}">
+  <p>User: {{reportUsers | joinByComma}}</p>
 </template>
 <template if="{{$.projectSelection.selection.length}}">
   <p>Projects: {{$.projectSelection.selection | joinIdByComma}}</p>
@@ -184,6 +189,7 @@
 <table>
   <colgroup>
     <col style="width: 10%"></col>
+    <col class="{{ {hidden: (reportUsers.length == 1)} | tokenList }}" style="width: 10%"></col>
     <col style="width: 10%"></col>
     <col style="width: 35%"></col>
     <col style="width: 35%"></col>
@@ -192,6 +198,9 @@
   <thead>
   <tr>
     <th>Date</th>
+    <th class="{{ {hidden: (reportUsers.length == 1)} | tokenList }}">
+      Author
+    </th>
     <th>Issue</th>
     <th>Summary</th>
     <th>Description</th>
@@ -203,6 +212,9 @@
     <tr>
       <td>
         {{parsedDate}}
+      </td>
+      <td class="{{ {hidden: !parsedAuthor} | tokenList }}">
+        {{parsedAuthor}}
       </td>
       <td style="white-space: nowrap">
         {{issueId}}
@@ -219,12 +231,11 @@
     </tr>
   </template>
   </tbody>
-  <tfoot>
-  <tr>
-    <th colspan="5" style="text-align: right">Total: <span class="totalDuration">{{totalParsedDuration}} h</span></th>
-  </tr>
-  </tfoot>
 </table>
+
+<p style="text-align: right">
+  Total: <span class="totalDuration">{{totalParsedDuration}} h</span>
+</p>
 </template>
 <script>
 function findFieldValue(fields, key) {
@@ -452,6 +463,10 @@ Polymer('youtrack-reporter', {
           entry.issueId = result.id;
           entry.summary = findFieldValue(result.field, "summary");
           entry.parsedDate = d + "." + m + "." + y;
+
+          if (that.reportUsers.length != 1) {
+            entry.parsedAuthor = entry.author.login;
+          }
 
           var hours = entry.duration / 60;
           entry.parsedDuration = Math.round(hours * 100) / 100;
