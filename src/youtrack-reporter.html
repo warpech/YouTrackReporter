@@ -473,7 +473,10 @@ Polymer('youtrack-reporter', {
           that.totalDuration += hours;
           that.totalParsedDuration = Math.round(that.totalDuration * 100) / 100;
           report.push(entry);
+        });
 
+        report.sort(function (a, b) {
+          return a.date - b.date;
         });
 
         that.issueProgress++;
@@ -481,7 +484,7 @@ Polymer('youtrack-reporter', {
         if (!waiting) {
           that.report = report;
         }
-      })
+      });
       request.send();
     });
   }
