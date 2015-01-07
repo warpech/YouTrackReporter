@@ -389,7 +389,7 @@ Polymer('youtrack-reporter', {
 
 //      this.searchRequest += "updated: " + this.rangeStart.format("YYYY-MM-DD HH:mm") + " .. " + this.rangeEnd.format("YYYY-MM-DD HH:mm") + " ";
     }
-    this.searchRequest += "&with=summary&with=Spent%20time&max=100";
+    this.searchRequest += "&with=summary&with=Spent%20time&max=1000";
 
     this.lastXhrs.forEach(function (xhr) {
       xhr.abort();
