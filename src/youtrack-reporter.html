@@ -5,6 +5,7 @@
 <link rel="import" href="../bower_components/paper-item/paper-item.html">
 <link rel="import" href="../bower_components/paper-progress/paper-progress.html">
 <link rel="import" href="../bower_components/core-localstorage/core-localstorage.html">
+<link rel="import" href="youtrack-username.html">
 
 <!-- Define your custom element -->
 <polymer-element name="youtrack-reporter">
@@ -51,9 +52,8 @@
     margin: 0;
   }
 
-  .filterOptions paper-item {
-    height: 24px;
-    padding: 0 4px;
+  paper-item {
+      font-size: 100%;
   }
 
   table {
@@ -99,8 +99,17 @@
     width: 100%;
   }
 
+  .headerLabel {
+    width: 6em;
+    display: inline-block;
+  }
+
   .hidden {
     display: none;
+  }
+
+  p youtrack-username:not(:first-of-type)::before {
+    content: ", ";
   }
 </style>
 
@@ -132,8 +141,8 @@
     <section>
       <h2>Users</h2>
       <core-menu id="userSelection" multi selected="{{userSelection}}" on-core-activate="{{refresh}}">
-        <template repeat="{{users}}">
-          <paper-item label="{{login}}"></paper-item>
+        <template repeat="{{users as u}}">
+          <paper-item><youtrack-username login="{{u.login}}" restApiUrl="{{restApiUrl}}"></youtrack-username></paper-item>
         </template>
       </core-menu>
       <core-localstorage name="youtrack-reporter-userSelection" value="{{userSelection}}"></core-localstorage>
@@ -143,7 +152,7 @@
       <h2>Projects</h2>
       <core-menu id="projectSelection" multi selected="{{projectSelection}}" on-core-activate="{{refresh}}">
         <template repeat="{{projects}}">
-          <paper-item label="{{id}}"></paper-item>
+          <paper-item>{{id}}</paper-item>
         </template>
       </core-menu>
       <core-localstorage name="youtrack-reporter-projectSelection" value="{{projectSelection}}"></core-localstorage>
@@ -153,7 +162,7 @@
       <h2>Date range</h2>
       <core-menu id="rangeSelection" selected="{{rangeSelection}}" on-core-select="{{refresh}}">
         <template repeat="{{ranges}}">
-          <paper-item label="{{name}}"></paper-item>
+          <paper-item>{{name}}</paper-item>
         </template>
       </core-menu>
       <core-localstorage name="youtrack-reporter-rangeSelection" value="{{rangeSelection}}"></core-localstorage>
@@ -175,17 +184,19 @@
   </section>
 </section>
 
-<h1>Report for {{reportRange}}</h1>
+<h1>Detailed Time Report</h1>
 
-<template if="{{reportUsers.length > 1}}">
-  <p>Users: {{reportUsers | joinByComma}}</p>
-</template>
-<template if="{{reportUsers.length == 1}}">
-  <p>User: {{reportUsers | joinByComma}}</p>
-</template>
+<p><span class="headerLabel">Timeframe:</span> <strong>{{parsedRangeStart}} &mdash; {{parsedRangeEnd}}</strong></p>
+
+  <p><span class="headerLabel">Staff:</span>
+    <template repeat="{{login in reportUsers}}"><youtrack-username login="{{login}}" restApiUrl="{{restApiUrl}}"></youtrack-username></template>
+  </p>
+
 <template if="{{$.projectSelection.selection.length}}">
-  <p>Projects: {{$.projectSelection.selection | joinIdByComma}}</p>
+    <p><span class="headerLabel">Projects:</span> {{$.projectSelection.selection | joinIdByComma}}</p>
 </template>
+
+<p><span class="headerLabel">Total:</span> <strong>{{totalParsedDuration}} h</strong></p>
 
 <table>
   <colgroup>
@@ -343,7 +354,10 @@ Polymer('youtrack-reporter', {
     var that = this;
     this.reportUsers = [];
     this.$.userSelection.selection.forEach(function (selectedItem) {
-      var login = selectedItem.templateInstance.model.login;
+      var login = selectedItem.templateInstance.model.u.login;
+        if(!login) {
+            throw new Error("Login not found");
+        }
       //that.searchRequest += "%23" + login ;
       //cannot find a query to limit search results to users that have updated time tracking. See: http://youtrack.jetbrains.com/issue/JT-17476
       that.reportUsers.push(login);
@@ -389,6 +403,10 @@ Polymer('youtrack-reporter', {
 
 //      this.searchRequest += "updated: " + this.rangeStart.format("YYYY-MM-DD HH:mm") + " .. " + this.rangeEnd.format("YYYY-MM-DD HH:mm") + " ";
     }
+
+    this.parsedRangeStart = this.rangeStart.format("D.MM.YYYY");
+    this.parsedRangeEnd = this.rangeEnd.format("D.MM.YYYY");
+
     this.searchRequest += "&with=summary&with=Spent%20time&max=1000";
 
     this.lastXhrs.forEach(function (xhr) {

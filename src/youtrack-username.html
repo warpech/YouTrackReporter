@@ -1,0 +1,25 @@
+<!-- Import Polymer -->
+<link rel="import" href="../bower_components/core-ajax/core-ajax.html">
+
+<!-- Define your custom element -->
+<polymer-element name="youtrack-username" attributes="login restApiUrl">
+    <template><template if="{{fullName}}">{{fullName}}</template><template if="{{!fullName}}">{{login}}</template><core-ajax
+            auto
+            url="{{restApiUrl}}rest/admin/user/{{login}}"
+            headers="{{headers}}"
+            handleAs="json"
+            withCredentials
+            on-core-response="{{handleUserResponse}}"></core-ajax></template>
+    <script>
+        Polymer('youtrack-username', {
+            headers: {
+                "Accept": "application/json"
+            },
+            handleUserResponse: function (ev) {
+                this.fullName = ev.detail.response.fullName;
+            }
+        })
+        ;
+    </script>
+
+</polymer-element>
